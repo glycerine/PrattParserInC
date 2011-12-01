@@ -35,7 +35,7 @@ var expression = function (rbp) {
 
 
 
-// My C/C++ implemention:
+// My C/C++ implemention, stripped of debugging code:
 
 // working expression() parsing routine. Reproduces the original Pratt and Crockford formulation.
 
@@ -47,74 +47,50 @@ var expression = function (rbp) {
 //
 // data flows from token -> t -> (possibly on the stack of t recursive munch_left calls) -> into the _left tree.
 //
-//  better names: _left  -> _accumulated_parsed_qtree (to be returned / apqt)
-//                t      -> cnode  (the current token's qtree node to be processed. Once we grab this we always advance() past it
-//                                     before processing it, so that _global_next_token (or _token) contains the following token.
+//  better names: _left  -> _accumulated_parsed_qtree (to be returned)
+//                t      -> cnode  (the current token's qtree node to be processed. 
+//                                     Once we grab this we always advance() past it
+//                                     before processing it, so that _global_next_token 
+//                                     (or _token) contains the following token.
 //
-//                  actually we just keep '_token' as is, rather than this more verbose description we considered:
-//                _token -> _global_next_token_node (since it is a global variable and can/will be incremented by many routines)
+//                _token -> _global_next_token_node (since it is a global variable and 
+//                            can/will be incremented by many routines, in particular advance();)
 //
+//  meaning of rbp parameter: if you hit a token with a  _token->_lbp < rbp, then don't bother 
+//                               calling munch_left, stop and return what you have.
 //
-//  meaning of rbp parameter: if you hit a token with a  _token->_lbp < rbp, then don't bother calling munch_left, stop and return what you have.
-//
-// better explanation:  rbp = a lower bound on descendant nodes precedence level, so we can 
-//    guarantee the precenence-hill-climbing property (small precedence at the top) in the resulting 
-//    parse tree.
+//  better explanation:  rbp = a lower bound on descendant nodes 
+//                             precedence level, so we can guarantee the precenence-hill-climbing 
+//                             property (small precedence at the top) in the resulting parse tree.
 //
 qtree* qtreefactory::expression(int rbp) {
-
-    DV(printf("_cnode_stack has size %ld:\n", _cnode_stack.size()));
-    DV(
-       std::list<qtree*>::iterator be = _cnode_stack.begin();
-       std::list<qtree*>::iterator en = _cnode_stack.end();
-       long i = 0;
-       for (; be != en; ++be, ++i) {
-            printf("\n*** _cnode_stack[%02ld] = \n",i);
-            (*be)->p();
-        }
-        printf("\n");
-       );
-
-    DV(symbol_print(_token,"_token: "));
 
     qtree* cnode = _token;
 
     if (eof()) {
         return cnode;
     }
-    _cnode_stack.push_front(_token);
 
     advance(0);
-
-    assert(_token);
-    DV(_token->print("_token: "));
 
     if (cnode) {
 
         // munch_right() of atoms returns this/itself, in which case: _accumulated_parsed_qtree = t; is the result.
         _accumulated_parsed_qtree = cnode->munch_right(cnode);
-        DV(_accumulated_parsed_qtree->print("_accumulated_parsed_qtree: "));
     }
 
     while(!eof() && rbp < _token->_lbp ) {
         assert(_token);
 
         cnode = _token;
-        _cnode_stack.front() = _token;
-
-        DV(cnode->print("cnode:  "));
 
         advance(0);
-        if (_token) {
-            DV(_token->print("_token:  "));
-        }
 
         // if cnode->munch_left() returns this/itself, then the net effect is: _accumulated_parsed_qtree = cnode;
         _accumulated_parsed_qtree = cnode->munch_left(cnode, _accumulated_parsed_qtree);
 
     }
 
-    _cnode_stack.pop_front();
     return _accumulated_parsed_qtree;
 }
 
