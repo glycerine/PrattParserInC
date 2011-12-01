@@ -51,7 +51,7 @@ var expression = function (rbp) {
 //                t      -> cnode  (the current token's qtree node to be processed. Once we grab this we always advance() past it
 //                                     before processing it, so that _global_next_token (or _token) contains the following token.
 //
-//                  actually we just keep '_token' as in, rather than this more verbose description we considered:
+//                  actually we just keep '_token' as is, rather than this more verbose description we considered:
 //                _token -> _global_next_token_node (since it is a global variable and can/will be incremented by many routines)
 //
 //
