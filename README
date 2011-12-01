@@ -4,8 +4,9 @@ These files illustrate an elegant parsing method, implemented in C, first
 described by Vaughn Pratt in his 1973 paper, "Top Down Operator Precedence."
 
 Pratt's description was in Lisp, and so hard for most people to interpret. Douglas
-Crockford's description in Javascript (see Beautiful Code, and http://javascript.crockford.com/tdop/tdop.html) were instrumental
-in bringing this method to my attention. 
+Crockford's description in Javascript (see Beautiful Code, and 
+http://javascript.crockford.com/tdop/tdop.html) were instrumental in bringing 
+this method to my attention. 
 
 They are part of a larger project, and so may not compile standalone at the moment.
 These files are here to illustrate the technique, and give examples of
