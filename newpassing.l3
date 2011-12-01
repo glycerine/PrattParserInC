@@ -1,0 +1,2660 @@
+// extut.l3 : external tests
+//
+($ctest "check we are starting tabula rosa, with a clean slate!!") 
+($checkzero)
+
+
+//////////////////////////////
+//
+($ctest "else clauses execute without error")
+
+else_error = F;
+
+try {
+
+  if (0) { so("then1"); so("then2"); } else { so("e0"); so("e1");}
+
+   catch {
+       so("in catch block");
+       else_error = T;
+   }
+
+}
+
+assert(!else_error)
+rm(else_error)
+checkzero()
+
+//////////////////////////////
+//
+($ctest "try can be used as the defining block with curly braces in de definition.")
+
+($de test_nest_obj ($prop ($return x !< t_any)) try {
+   o2 = new(Obj o2);
+   gdump();
+   o2.i2 = new(Obj i2);
+   o2.i2.hi = "hello";
+   so("o2 is " o2)
+}
+)
+
+test_nest_obj()
+
+rm(test_nest_obj)
+checkzero()
+
+
+//////////////////////////////
+//
+($ctest "objects new-ed up within a function do get automatically released, right?")
+
+($de checkd ($prop ($return x !< t_any)) ($progn  
+   o2 = new(Obj o2);
+   gdump();
+   o2.i2 = new(Obj i2);
+   o2.i2.hi = "hello";
+   so("o2 is " o2)
+)
+)
+checkd()
+rm(checkd)
+checkzero()
+
+
+//////////////////////////////
+//
+($ctest "get a toplevel s-expression, and add annotation to it.")
+
+s1 = sexp(tdop("a = 10"))
+s1.nested = new(Notes notes)
+s1.note1 = "hi, I'm an object with it's _sexp field set"
+s1.data = v(1 2 3)
+
+rm(s1)
+checkzero()
+
+
+//////////////////////////////
+//
+($ctest "product a standalone sexp from a tdop")
+
+s = sexp(tdop("{ g = 10; a = g + 0; }"))
+
+rm(s)
+checkzero()
+
+
+
+//////////////////////////////
+//
+($ctest "curly brace blocks {} work as compound statements")
+
+j=0
+for( {i=0; j =0} ; i  < 10; i++) { so("j is " j); j--; }
+
+
+{ so("hi"); so(" there")}
+
+($rm i j)
+($checkzero)
+
+
+//////////////////////////////
+//
+($ctest "parse_eval does parse then eval")
+
+eval_parse(" a  = 10")
+assert(exists("a")[0])
+assert(a == 10)
+
+// construct a string from parts using the paste operator p(), then parse and evaluate it.
+eval_parse( p("b" "=" "3" "+" "5"))
+assert(exists("b")[0])
+assert(b == 8)
+
+($rm a b)
+($checkzero)
+
+
+//////////////////////////////
+//
+($ctest "new function definitions cannot blow away pre-existing variables by mistake")
+
+caught = F
+try {
+
+  seq=2
+  seq=($de seq ($prop) 23)
+
+   catch { 
+      handled(); 
+      caught = T
+   }
+}
+
+assert(caught)
+($rm caught seq)
+($checkzero)
+
+
+
+/////////////////////////////////
+//
+//
+($ctest "define and redefine a seq function - three steps that were causing segfault")
+
+a=2
+($= a ($= a 3))
+
+
+b=3
+
+b=b=b
+assert(eq(b 3)) // previously giving F.
+
+($rm a b)
+($checkzero)
+
+
+/////////////////////////////////////
+//
+($ctest "++ and -- work, but prefix or postfix both yield prefix at the moment")
+
+a=v(1 2 3)
+b=v(2 3 4)
+aplus = ++a;
+assert(eq(aplus, b))
+rm(a, b, aplus)
+checkzero()
+
+
+/////////////////////////////////////
+//
+($ctest "break -- and continue -- statements work")
+
+incme=0
+for (i = 0; i < 3; i++) {
+  ($so "in the for loop body! i is " i)
+  if (i == 0) continue;
+  ($so "statement 2 - in the for loop body! i is " i)
+
+  for (j=0; j < 3; j++) {
+    ($so "inner loop has j = " j " and i = " i)
+    if (j > 0) break;
+    incme++;
+  }
+}
+assert(i==3)
+assert(j==1)
+assert(incme==2)
+
+($rm i j incme)
+($checkzero)
+
+
+/////////////////////////////////////
+//
+($ctest "continue statement works")
+
+incme=0
+
+for (i = 0; i < 2; i++) {
+  ($so "in the for loop body! i is " i)
+
+  if (i == 0) continue;
+
+  ($so "statement 2 - in the for loop body! i is " i)
+  incme++;
+}
+
+assert(i==2)
+assert(incme==1)
+($rm i incme)
+($checkzero)
+
+/////////////////////////////////////
+//
+($ctest "nested continue statement works")
+
+incme=0;
+
+for (i = 0; i < 3; i++) {
+  ($so "outer loop, i is " i)
+
+  if (i == 1) continue;
+
+  for (j = 0; j < 3; j=j+1) {
+     ($so "*** inner loop, j is " j)
+
+      if (j == 1) continue;
+
+      ($so "*** inner loop, got past continue, j is " j " and i is " i)
+
+      incme++;
+  }
+}
+
+assert(incme == 4);
+
+($rm i j incme)
+($checkzero)
+
+
+
+/////////////////////////////////////
+//
+($ctest "nested for loops work")
+
+incme=0
+for (i = 0; i < 2; i=i+1) {
+  ($so "in the for loop body! i is " i)
+  ($so "statement 2 - in the for loop body!")
+
+  for (j=0; j < 3; j=j+1) {
+    ($so "inner loop has j = " j " and i = " i)
+    incme=incme+1;
+  }
+}
+assert(i==2)
+assert(incme==6)
+($rm i incme j)
+($checkzero)
+
+
+/////////////////////////////////////
+//
+($ctest "C style for loops work")
+
+incme=0
+for (i = 0; i < 2; i=i+1) {
+  ($so "in the for loop body! i is " i)
+  ($so "statement 2 - in the for loop body!")
+  incme=incme+1;
+}
+assert(i==2)
+assert(incme==2)
+
+($rm i incme)
+($checkzero)
+
+/////////////////////////////////////
+//
+($ctest "nesting of try/catch blocks and handling testing")
+
+// looks like this just results in a and a.bub being inaccessible, but still on the heap.
+a=new(A a)
+a.bub=new(Bub bub)
+//  //this should be prohibited: (transfer obj newowner "newname")
+
+
+try {
+  ($so "starting outer block")
+
+  try {
+    ($so "starting inner block")
+
+    ($transfer a a.bub)
+
+    ($assert F) // should never get here!
+    ($so "should never see this!")
+
+    catch {
+      ($so "inner catch happening.")
+      ($so "good: the test of transfer prohibition works")
+      //($handled)
+    }
+    finally {
+      ($so "inner finally happening.")
+    }
+
+  }
+
+  ($so "returning to outer block")
+
+
+  catch {
+    ($so "in outer block catch -- apperently ($handled) was not called earlier. handle now so the script can keep on running.")
+    ($handled)
+  }
+
+  finally {
+      ($so "outer finally happening.")
+  }
+
+}
+
+($assert ($aref ($exists "a") 0))
+
+($rm  a)
+($checkzero)
+
+
+
+/////////////////////////////////////
+//
+($ctest "test cycle-prohibition on transfer, and the catching of exceptions too.")
+
+// looks like this just results in a and a.bub being inaccessible, but still on the heap.
+a=new(A a)
+a.bub=new(Bub bub)
+//  //this should be prohibited: (transfer obj newowner "newname")
+
+try {
+  ($transfer a a.bub)
+
+  ($assert F) // should never get here!
+
+  finally {
+    ($so "good: the test of transfer prohibition works")
+    ($handled)
+  }
+
+}
+($assert ($aref ($exists "a") 0))
+
+($rm a)
+($checkzero)
+
+
+
+//////////////////////////////////
+//
+($ctest "basic parsing of try and finally works")
+
+try {
+  ($so "start of try block")
+
+  finally {
+    ($so "in the finally block.")
+  }
+}
+
+
+//////////////////////////////////
+//
+($ctest "test of try/throw/catch/finally and passing an exception value")
+
+try {
+  ($so "start of try block")
+
+  d = 2 + 4;
+  throw(d + 3);
+
+  ($so "this should be skipped")
+
+  catch {
+    last = ($dq_back XQ);
+    ($so " in catch! last exception on stack is: " last)
+    ($assert ($eq last 9))
+    ($handled)
+  }
+
+  finally {
+    ($so "in the finally block.")
+  }
+}
+
+($dq_clear XQ)
+($rm last d)
+($checkzero)
+
+///////////////////////////////
+// restore some loop tests
+//
+($progn ($= i 0) ($while1 ($progn ($= i ($+ i 1)) ($if ($> i 4) ($break_) ($so "i is " i) ))))
+($rm i)
+($checkzero)
+
+// not working, symvec broken? ($foreach cols j s ($so "j is " j " and s is '" s "'"))
+
+///////////////////////////////
+//
+($ctest "open square bracket does array indexing")
+b=v( 2 4 6 8)
+assert( eq( b[1+2], 8))
+
+($rm b)
+($checkzero)
+
+//////////////////////////
+//
+($ctest "basic parsing of single quotes works")
+($assert ($eq 'hello' "hello"))
+
+
+////////////////////////////////////////
+($ctest "parsing of triple quoted strings containing { not matched on one line.")
+
+b="""first of two lines
+with a second line after the newline"""
+
+t=($tdop """try { 
+
+    x = "I'm an exceptional string!";
+
+    throw(x);
+
+    so("I'm never reached, right?");
+
+    catch(xtype xobj) {
+          so("in catch blow, I see xtype: ", xtype);
+          so(" and xobj: ", xobj);          
+    }
+
+    finally {
+         so("now in finally block.");
+    }
+}
+""")
+
+($assert ($eq ($p t)    """('{' _hd:('try')('='('x')('"I'm an exceptional string!"'))(';')('(' _hd:('throw')('x'))(';')('(' _hd:('so')('"I'm never reached, right?"'))(';')('{' _hd:('(' _hd:('catch')('xtype')('xobj'))('(' _hd:('so')('"in catch blow, I see xtype: "')('xtype'))(';')('(' _hd:('so')('" and xobj: "')('xobj'))(';'))('{' _hd:('finally')('(' _hd:('so')('"now in finally block."'))(';')))"""))
+
+($rm b t)
+($checkzero)
+
+
+///////////////////////////////////////
+($ctest "line extension from command line/file works")
+assert(eq(
+(
+3+4)
+,
+7
+)
+)
+
+
+///////////////////////////////////////
+($ctest "colon operator works")
+assert(eq( ($p ($tdop "a[-1+2:3]")), "('[' _hd:('a')(':'('+'('-'('1'))('2'))('3')))"))
+
+///////////////////////////////////////
+($ctest "short circuiting parsing works")
+assert(eq(($p ($tdop "first && second && third")), "('&&'('first')('&&'('second')('third')))"))
+assert(eq(($p ($tdop "first || second || third")), "('||'('first')('||'('second')('third')))"))
+
+//////////////////////////////////////////
+//
+($ctest "line continuation works, and ignoring embedded comments")
+assert(  // ignore this
+eq((1    // ignore2
++ 2)     // ignore3
+* 3+ 5, 14) // ignore4
+)           // ignore5
+
+3 + 4  // could be done now, or not; for example
+  + 5 ; // here is the real end. noted by the semicolon.
+
+
+////////////////////////////////////////
+//
+($ctest "postfix > prefix")
+($assert ($eq  ($p ($tdop "--a++"))   "('--' prefix:('++' postfix:('a')))"))
+($assert ($eq  ($p ($tdop "++a--"))   "('++' prefix:('--' postfix:('a')))"))
+
+////////////////////////////////////
+//
+($ctest "test hanlding of comma within parenthesis")
+a=-1
+a=-(3 + 2)
+assert(eq(a, -5))
+
+($rm a)
+($checkzero)
+
+//////////////////////////////////
+//
+//
+($ctest "unary negatives parse as negative numbers")
+a= -1
+assert( eq(a, -1))
+
+//////////////////////////////////
+//
+//
+($ctest "multiple expressions + partial expression per line work")
+
+($= a 10) ($= b 12) ($= str ($p
+    "yeeehaaaaw"))
+
+($assert ($eq a 10))
+($assert ($eq b 12))
+($assert ($eq str "yeeehaaaaw"))
+
+($rm a b str)
+($checkzero)
+
+
+
+/////////////////////////////////////
+//
+//
+($ctest "more function calls")
+($assert ($eq ($p ($tdop "sin(x) + cos(y)"))  "('+'('(' _hd:('sin')('x'))('(' _hd:('cos')('y')))"))
+($assert ($eq  ($p ($tdop "double myfunc() {}"))   "('double'('{' _hd:('(' _hd:('myfunc'))))"))
+($assert ($eq  ($p ($tdop "myfunc(double x, double y) {  (0) + sin(x) + cos(y) + (v[1] + 3) }"))   "('{' _hd:('(' _hd:('myfunc')('double'('x'))('double'('y')))('+'('+'('+'('('('0'))('(' _hd:('sin')('x')))('(' _hd:('cos')('y')))('('('+'('[' _hd:('v')('1'))('3')))))"))
+
+/////////////////////////////////////
+//
+($ctest "misc other parsing")
+($assert ($eq  ($p ($tdop "v[1,2,3,4]"))   "('[' _hd:('v')('1')('2')('3')('4'))"))
+
+($assert ($eq  ($p ($tdop "double a = 10"))   "('='('double'('a'))('10'))"))
+
+($ctest "parsing defn")
+($assert ($eq  ($p ($tdop "double a() {}"))   "('double'('{' _hd:('(' _hd:('a'))))"))
+
+($ctest "parsing decl")
+($assert ($eq  ($p ($tdop "double a()"))   "('double'('(' _hd:('a')))"))
+
+($ctest "parsing while")
+($assert ($eq ($p ($tdop "while (1) { hi++ }"))  "('while'('1')('{'('++' postfix:('hi'))))"))
+
+($ctest "parsing if and ++")
+($assert ($eq ($p ($tdop "if (a>5) ++a;"))  "('if'('>'('a')('5'))('++' prefix:('a')))"))
+($assert ($eq ($p ($tdop "if (a>5) a++;"))  "('if'('>'('a')('5'))('++' postfix:('a')))"))
+($assert ($eq ($p ($tdop "if (a>5) { a; b; c; }"))  "('if'('>'('a')('5'))('{'('a')(';')('b')(';')('c')(';')))"))
+
+
+($ctest "parsing if and else")
+($assert ($eq ($p ($tdop "if (1) then1; else e0"))  "('if'('1')('then1')('else'('e0')))"))
+($assert ($eq ($p ($tdop "if (1) then1; else { e0; e1;}"))  "('if'('1')('then1')('else'('{'('e0')(';')('e1')(';'))))"))
+($assert ($eq ($p ($tdop "if (1) { then1; then2;} else { e0; e1;}"))   "('if'('1')('{'('then1')(';')('then2')(';'))('else'('{'('e0')(';')('e1')(';'))))"))
+
+
+($ctest "parsing for loop")
+($assert ($eq  ($p ($tdop "for (int i = 0; i < 10; ++i ) { print(i); }"))  "('for' body:('{'('(' _hd:('print')('i'))(';'))('='('int'('i'))('0'))('<'('i')('10'))('++' prefix:('i')))"))
+
+($assert ($eq   ($p ($tdop "for (int i = 0; i < 10; ++i ) { }"))   "('for' body:('{')('='('int'('i'))('0'))('<'('i')('10'))('++' prefix:('i')))"))
+
+($ctest "pasing ++/--")
+($assert ($eq  ($p ($tdop "++i"))  "('++' prefix:('i'))"))
+($assert ($eq  ($p ($tdop "i++"))   "('++' postfix:('i'))"))
+($assert ($eq  ($p ($tdop "--i"))  "('--' prefix:('i'))"))
+($assert ($eq  ($p ($tdop "i--"))   "('--' postfix:('i'))"))
+
+($ctest "parsing minimal prefix and postfix, to test eof")
+($assert ($eq  ($p ($tdop "([])"))  "('('('['))"))
+($assert ($eq  ($p ($tdop "i++"))   "('++' postfix:('i'))"))
+($assert ($eq  ($p ($tdop "++i"))   "('++' prefix:('i'))"))
+
+($ctest "correct precedence of ++i vs addition")
+($assert ($eq ($p ($tdop "9 + ++i + 8"))  "('+'('+'('9')('++' prefix:('i')))('8'))"))
+
+
+($ctest "parsing nested else correctly")
+($assert ($eq  ($p ($tdop "if (d<e) if (a < b) return a; else return b;"))  "('if'('<'('d')('e'))('if'('<'('a')('b'))('return'('a'))('else'('return'('b')))))"))
+
+
+($ctest "postfix ++ should bind more tightly than prefix ++")
+($assert ($eq  ($p ($tdop "++i++" ))   "('++' prefix:('++' postfix:('i')))"))
+
+
+
+/////////////////////////////////
+//
+//
+($ctest "tdop : empty nested mixed nested paren/brackets/braces okay")
+($assert ($eq ($p ($tdop "[{[({{([])}})]}]"))     "('['('{'('['('('('{'('{'('('('['))))))))"))
+
+($ctest "parsing function calls")
+($assert ($eq  ($p ($tdop " cos(1.0) "))   "('(' _hd:('cos')('1.0'))"))
+
+
+($ctest "parsing nesting brackets within other groupers")
+($assert ($eq  ($p ($tdop "{ w[1] + v[2]}"))   "('{'('+'('[' _hd:('w')('1'))('[' _hd:('v')('2'))))"))
+($assert ($eq  ($p ($tdop "{ w[1] + 5 }"))  "('{'('+'('[' _hd:('w')('1'))('5')))"))
+($assert ($eq  ($p ($tdop "( w[1] + 5 )"))  "('('('+'('[' _hd:('w')('1'))('5')))"))
+
+($ctest "parsing array ref on nesting brackets within other groupers")
+($assert  ($eq  ($p ($tdop "[ w[1] + 5 ]"))   "('['('+'('[' _hd:('w')('1'))('5')))"))
+($assert ($eq   ($p ($tdop "x[ w[1] + 5 ]"))   "('[' _hd:('x')('+'('[' _hd:('w')('1'))('5')))"))
+
+
+
+/////////////////////////////////
+//
+// more parsing tests
+//
+($ctest "nested [ and (")
+
+($assert ($eq ($p ($tdop "[(a[])]"))  "('['('('('[' _hd:('a'))))"))
+($assert ($eq ($p ($tdop "[([])]"))   "('['('('('[')))"))
+($assert ($eq ($p ($tdop "a[([])]"))  "('[' _hd:('a')('('('[')))"))
+
+($ctest "stuff inside [")
+($assert ($eq ($p ($tdop "a[(b[])]"))  "('[' _hd:('a')('('('[' _hd:('b'))))"))
+($assert ($eq  ($p ($tdop "a[1,2,3]"))  "('[' _hd:('a')('1')('2')('3'))"))
+($assert ($eq  ($p ($tdop "a[1;2;3]"))  "('[' _hd:('a')('1')(';')('2')(';')('3'))"))
+
+
+
+/////////////////////////////////
+//
+//  parsing tests
+
+($ctest "tdop : empty square brackets inside parens")
+($assert ($eq ($p ($tdop "([])"))  "('('('['))"))
+
+
+($ctest "tdop : empty square brackets are okay")
+($assert ($eq ($p ($tdop "a[ ]"))  "('[' _hd:('a'))"  ))
+
+($ctest "tdop : empty square brackets -- inside parens -- are okay")
+($assert ($eq ($p ($tdop "( a[ ] )"))  "('('('[' _hd:('a')))" ))
+
+($ctest "tdop : empty t_osq okay")
+($assert ($eq ($p ($tdop "[]"))   "('[')"))
+
+($ctest "tdop : empty t_opn okay")
+($assert ($eq ($p ($tdop "()"))   "('(')"))
+
+($ctest "tdop : empty nested t_opn okay")
+($assert ($eq ($p ($tdop "((()))"))   "('('('('('(')))"))
+
+($ctest "tdop : empty t_obr okay")
+($assert ($eq ($p ($tdop "{}"))       "('{')"))
+
+($ctest "tdop : empty nested t_obr okay")
+($assert ($eq ($p ($tdop "{{}}"))     "('{'('{'))"))
+
+
+
+////////////////
+//
+($ctest "tdop : embedded characters that would be closers, '}' and ')' and ']': check that we are not faked out by them.")
+($assert ($eq ($p ($tdop "{ '}' }"))  "('{'(''}''))" ))
+($assert ($eq ($p ($tdop "{ ')' }"))  "('{'('')''))" ))
+($assert ($eq ($p ($tdop "{ ']' }"))  "('{'('']''))" ))
+
+
+////////////////////////////////////////////
+// 
+//
+($ctest "tdop parsing: test curly braces t_obr ")
+($assert ($eq ($p ($tdop "a"))  "('a')" ))
+($assert ($eq ($p ($tdop "a;"))  "('a') (';')" ))
+($assert ($eq ($p ($tdop " a ; \n"))  "('a') (';')" ))
+($assert ($eq ($p ($tdop "{ a }"))  "('{'('a'))" ))
+($assert ($eq ($p ($tdop "{ a ; b }"))  "('{'('a')(';')('b'))"  ))
+($assert ($eq ($p ($tdop "{ a ; b ; }"))   "('{'('a')(';')('b')(';'))"  ))
+($assert ($eq  ($p ($tdop "{ a ; b ; d }"))  "('{'('a')(';')('b')(';')('d'))" ))
+($assert ($eq  ($p ($tdop "{ a ; b ; d ; }"))  "('{'('a')(';')('b')(';')('d')(';'))" ))
+
+
+/////////////////////////
+//
+($ctest "tdop - newline at front")
+($assert ($eq ($p ($tdop "\na"))  "('a')" ))
+//($assert ($eq ($p ($tdop "\na;"))  "('a')" ))
+//($assert ($eq ($p ($tdop "\n a ; \n"))  "('a')" ))
+($assert ($eq ($p ($tdop "\n{ a }"))  "('{'('a'))" ))
+($assert ($eq ($p ($tdop "\n{ a ; b }"))  "('{'('a')(';')('b'))"  ))
+($assert ($eq ($p ($tdop "\n{ a ; b ; }"))   "('{'('a')(';')('b')(';'))"  ))
+($assert ($eq  ($p ($tdop "\n{ a ; b ; d }"))  "('{'('a')(';')('b')(';')('d'))" ))
+($assert ($eq  ($p ($tdop "\n{ a ; b ; d ; }"))  "('{'('a')(';')('b')(';')('d')(';'))" ))
+
+
+////////////////
+//
+($ctest "tdop -newlines interspersed")
+($assert ($eq ($p ($tdop "\n\na\n\n"))  "('a')" ))
+//($assert ($eq ($p ($tdop "\n\na\n;\n"))  "('a')" ))
+//($assert ($eq ($p ($tdop "\n \n a \n  ; \n \n"))  "('a')" ))
+($assert ($eq ($p ($tdop "\n\n\n { \n a \n  ; \n }  \n"))  "('{'('a')(';'))" ))
+
+
+/////////////////
+//
+($ctest "tdop a double quoted string")
+($eq ($p ($tdop "\"hi\""))  "('\"hi\"')")
+
+
+($checkzero)
+
+//////////////////////////////////////////////
+// 
+//
+//
+($ctest "parsing infix with pratt parser; top down operator precedence")
+
+($assert ($eq  ($p ($tdop "stuff { one; v[ 5*2+8]  * v[1] + v[2]; }"))   "('{' _hd:('stuff')('one')(';')('+'('*'('[' _hd:('v')('+'('*'('5')('2'))('8')))('[' _hd:('v')('1')))('[' _hd:('v')('2')))(';'))"))
+
+txt = "stuff { one; v[ 5*2+8]  * v[1] + v[2]; }"
+parsed = ($p ($tdop txt))
+($assert ($eq parsed "('{' _hd:('stuff')('one')(';')('+'('*'('[' _hd:('v')('+'('*'('5')('2'))('8')))('[' _hd:('v')('1')))('[' _hd:('v')('2')))(';'))"))
+
+($rm parsed txt)
+
+//////////////////////////////////////////////
+// 
+//
+//
+($ctest "saving of single string")
+
+a=($new AObj aobj)
+
+a.hi = "greetings"
+
+($save a "./nv1.l3o")
+($rm a)
+a=($load "./nv1.l3o")
+
+($assert ($eq a.hi "greetings"))
+
+($rm a)
+($checkzero)
+
+
+//////////////////////
+//
+//
+($ctest "dd : doubly linked lists of lnk")
+
+m=($dd)
+
+// basic doubly-linked list operation
+($assert ($eq ($dd_size m) 0))
+
+ord1 = ($new Order ord1)
+ord1.price =10.1
+
+ord2=($new Order ord2)
+ord2.price=10.2
+
+ord3=($new Order ord3)
+ord3.price=10.3
+
+ord4=($new Order ord4)
+ord4.price=10.4
+
+
+($dd_pushback m ord1)
+($dd_pushback m ord2)
+($dd_pushback m ord3)
+($dd_pushback m ord4)
+
+($assert ($eq ($dd_size m) 4))
+
+o4 = ($dd_back m)
+($assert ($eq o4.price 10.4))
+
+($dd_popback m)
+($assert ($eq ($dd_size m) 3))
+
+o3 = ($dd_back m)
+($assert ($eq o3.price 10.3))
+
+
+($dd_pushfront m 4)
+($assert ($eq ($dd_size m) 4))
+
+($assert ($eq ($dd_front m) 4))
+
+($dd_del_ith m 0)
+($assert ($eq ($dd_front m) ord1))
+($assert ($eq ($dd_ith     m 0) ord1))
+
+($assert ($eq ($dd_ith     m 2) ord3))
+
+($rm m)
+($rm ord1 ord2 ord3 ord4)
+($checkzero)
+
+
+
+//////////////////////
+//
+//
+($ctest "mq : message queue of lnk")
+
+m=($mq)
+
+($assert ($eq ($mq_size m) 0))
+
+($mq_pushback m 3 "t_dou")
+
+($assert ($eq ($mq_size m) 1))
+($assert ($eq ($mq_back m) 3))
+
+
+($rm m)
+($checkzero)
+
+/////////////////////
+//
+//
+($ctest "dq : ownership stays where it starts unless explicitly moved.")
+
+ d = ($dq 9)
+
+($dq_popback d)
+($rm d)
+($checkzero)
+
+ d = ($dq 9)
+
+a=($new A a)
+a.b=($new B b)
+
+ a.b.fr = ($dq_front d)
+
+// should this slide ownership over to a.b ? ($tricky b/c done in two steps)
+($dq_del_ith d 0)
+
+// well, no, the ownership should stay d unless transferred specifically: that is the user's choice, right, and responsibility.
+
+($assert ($owns d a.b.fr)) // this is okay/ ownership doesn't change unless to transfer explicitly. Not sure we really want this,
+// but it seems almost too agressive to auto-transfer ownership when it hasn't been requested/specified by the coder.
+
+($rm d a)
+($checkzero)
+
+
+
+/////////////////////
+//
+//
+($ctest "transfer: transfer to non-extistant literal uses the literal as the new name")
+
+ d = ($dq 9)
+
+a=($new A a)
+a.b=($new B b)
+
+($transfer ($dq_front d) a.b.frd) // this does transfer ownership. works.
+
+($assert ($eq a.b.frd 9))
+($assert ($owns a.b.frd a.b))
+
+($rm d a)
+($checkzero)
+
+
+////////////////////////////
+//
+//
+($ctest "basic factory method: @< return value ownership transfer")
+
+($de checkd ($prop ($return b @< t_any) ($arg d !> t_any)) d)
+    
+a = ($checkd 3)
+
+($assert ($eq a 3))
+($assert ($owns a main_env))
+
+($rm a)
+($rm checkd)
+($checkzero)
+
+/////////////////////
+//
+($ctest "assignment should return the right-hand-side value, so it can be used again. for eventual inline: a = r = 3/ ")
+
+a = r = 3
+($assert ($eq a 3))
+($rm a) // a and r are just two refs to the same thing.
+($checkzero)
+
+/////////////////////
+//
+//
+($ctest "really deep recursive saving and loading")
+
+a=($new A a)
+a.b=($new B b)
+a.b.c=($new C c)
+a.b.c.d=($new D d)
+a.b.c.d.e=($new E e)
+a.b.c.d.e.f=($new F f)
+
+// and hang some double vec in there too
+
+a.Adouble = ($v 1 2 3)
+a.b.Bdouble = ($v 4 5 6)
+
+a.b.c.Cdouble1 = ($v 7 8 9)
+a.b.c.Cdouble2 = ($v 10 11)
+
+a.b.c.d.Ddouble = ($v 12 13 14)
+
+a.b.c.d.e.Edouble1 = ($v 15)
+a.b.c.d.e.Edouble2 = ($v 16)
+
+
+
+($save a "./abcdef.l3o")
+
+($rm a)
+
+a=($load "./abcdef.l3o")
+
+($assert ($aref ($exists "a.b.c.d.e.Edouble2") 0))
+($assert ($eq ($aref a.b.c.d.e.Edouble2  0)  16))
+($assert ($eq ($aref a.b.c.Cdouble2      1)  11))
+($assert ($eq ($aref a.Adouble           2)  3))
+
+($rm a)
+($checkzero)
+
+
+/////////////////////
+//
+//
+($ctest "recursively saving and loading: saving an object with an object inside the top object")
+
+b=($new B b)
+b.a=($new A a)
+b.a.dvec = ($v 4 5 6)
+($save b "./aobj.l3o")
+
+($rm b)
+
+b2=($load "./aobj.l3o")
+
+($assert ($aref ($exists "b2.a.dvec") 0))
+($assert ($aref b2.a.dvec 0)  4)
+($assert ($aref b2.a.dvec 1)  5)
+($assert ($aref b2.a.dvec 2)  6)
+
+
+($rm b2)
+($checkzero)
+
+
+
+/////////////////////
+//
+//
+($ctest "saving an object with a nested vector of double")
+
+a=($new A a)
+a.dvec = ($v 4 5 6)
+($save a "./aobj2.l3o")
+
+($rm a)
+
+b=($load "./aobj2.l3o")
+
+($assert ($aref ($exists "b.dvec") 0))
+($assert ($aref b.dvec 0)  4)
+($assert ($aref b.dvec 1)  5)
+($assert ($aref b.dvec 2)  6)
+
+($rm b)
+($checkzero)
+
+
+/////////////////////
+//
+//
+($ctest "saving a double vector to disk via nv, getting it loaded back in into double obj.")
+
+a=($v 1 2 3)
+($save a "./adouble.l3o")
+
+($rm a)
+
+a=($load "/Users/jaten/dj/strongref/adouble.l3o")
+
+($eq ($aref a 0) 1)
+($eq ($aref a 1) 2)
+($eq ($aref a 2) 3)
+
+($rm a)
+($checkzero)
+
+
+/////////////////////
+//
+//
+($ctest "nv3 basics, print and cp: just testing our wrapper for protobuf generated classes. This can go away eventually. ")
+
+a=($nv3)
+a
+b=($cp a)
+b
+($rm a b)
+($checkzero)
+
+/////////////////////
+//
+//
+($ctest "link basics: link, relink, chase")
+
+tobj = ($new Target target)
+alt  = ($new Another alttarget)
+
+s = ($link "my_first_symlink" tobj)
+
+($assert ($eq ($chase s) tobj))
+
+($relink s alt)
+($assert ($eq ($chase s) alt))
+
+// and test linkname and chase in a link to a link
+//
+  s2 = ($link "s2" s)
+($assert ($eq  ($chase ($chase s2)) ($chase s)))
+
+($assert ($eq  ($linkname s2) "s2"))
+($assert ($eq  ($linkname ($chase s2)) "my_first_symlink"))
+
+
+
+
+($rm s s2)
+($rm tobj alt)
+($checkzero)
+
+
+//////////////////////////////////
+//
+//
+($ctest "dq printing does not infinite loop!")
+
+    par=($new Par par)
+   par.children = ($dq)
+   lefty = ($new Chi lefty)
+   righty = ($new Chi righty)
+
+  ($dq_pushback  par.children  lefty "left")
+  ($dq_pushback  par.children  righty "right")
+  ls
+
+($rm par lefty righty)
+($checkzero)
+
+/////////////////////
+//
+//
+($ctest "dq : do objects with no more lnk references get deleted eagerly? they should.")
+
+($setq sent 8) // dtor will increment this by one.
+
+($setq f ($new Forklift myfork))
+
+($de forkliftdtor ($prop) ($progn ($so "*** --->  forkliftdtor! <--- ***, I see sent: " sent) ($= sent ($+ sent 1)) ))
+($dtor_add forkliftdtor f)
+
+ d = ($dq f)
+
+($softrm f)
+
+($dq_del_ith d 0)
+
+($assert ($eq 9 sent))
+
+($rm forkliftdtor)
+($rm d sent)
+
+($checkzero)
+
+
+/////////////////////
+//
+//
+($ctest "dtor functions: can reference local and global variable referenes, and cp of dtor works.")
+
+($setq sent 0)
+($setq f ($new Forklift myfork))
+
+($de forkliftdtor ($prop) ($progn ($so "*** --->  forkliftdtor! <--- ***, I see sent: " sent " and ff=" ff) ($setq sent ($+ sent 1)) ($setq ff ($- ff 1))))
+($de f.doit ($prop) ($so "*** --->  doit running!!!!! <--- ***, I see sent: " sent "and ff=" ff))
+
+($dtor_add forkliftdtor f)
+
+($setq g ($cp f))
+f.ff=55
+sent=44
+
+($f.doit)
+
+($rm f)
+($assert ($eq 45 sent))
+// 
+// okay now reconstruct f
+($setq f ($new Fork2 myfork2))
+($dtor_add forkliftdtor f)
+($de f.doit ($prop) ($so "*** --->  doit running!!!!! <--- ***, I see sent: " sent))
+
+
+
+f2 = ($cp f) // also missing ff internal variable, like the original.
+
+// once sent and ff are available, ($rm f) *should* run the forkliftdtor without a hitch:
+//($rm f) // won't work yet.
+
+f.ff=77
+($rm f)
+($assert ($eq 46 sent))
+
+// and ($rm g) should fail on not being able to find ff or 
+//($rm g)
+// which it does
+
+// makes it work:
+g.ff=2
+//($rm g)
+
+f2.ff = 35
+
+($setq g ($cp f2))
+
+// crash right above here, before we added in g.ff=2
+
+//($rm f)
+
+($assert  ($aref ($exists "g.ff") 0))
+($assert  ($eq  g.ff 35))
+
+($assert  ($aref ($exists "g.doit") 0))
+($g.doit)
+
+($rm g)
+
+($rm f2)
+($rm sent forkliftdtor)
+($checkzero)
+
+
+
+////////////////////////////////////////
+//  
+($ctest "cp - deep copy of simple doubles too")
+
+a=($new A a)
+a.upper = 7
+a.b=($new B b)
+a.b.one=1
+a.b.two=2
+
+a2=($cp a)
+
+($rm a)
+
+($assert  ($aref ($exists "a2.upper") 0))
+($assert  ($aref ($exists "a2.b") 0))
+($assert  ($aref ($exists "a2.b.one") 0))
+($assert  ($aref ($exists "a2.b.two") 0))
+
+($rm a2)
+($checkzero)
+
+///////////////////////////////////////////////////
+//
+//  
+($ctest "cp - deep copy of objects")
+
+
+($setq sent 0)
+($setq t1 ($new truck mytr1_t1))
+t1.ff=55
+($de truckdtor ($prop) ($progn ($so "*** --->  truckdtor! <--- ***") ($= sent ($+ sent 1)) ($= ff ($- ff 1))))
+($de t1.doit ($prop) ($so "*** --->  doit running!!!!! <--- ***"))
+
+($dtor_add truckdtor t1)
+
+($setq t2 ($cp t1))
+($rm t1)
+
+($assert  ($aref ($exists "t2.ff") 0))
+($assert  ($eq  t2.ff 55))
+
+($assert  ($aref ($exists "t2.doit") 0))
+($t2.doit)
+
+($rm t2)
+
+($rm sent truckdtor)
+($checkzero)
+
+
+//////////////////////////////////////////////////
+//
+// 
+($ctest "recursive src should work - with side effects visible")
+
+ accum = ""
+($src test_src_C.l3)
+($assert ($eq accum "c1 center c0 "))
+
+ accum = ""
+($src test_src_B.l3)
+($assert ($eq accum "b1 c1 center c0 b0 "))
+
+ accum = ""
+($src test_src_A.l3)
+($assert ($eq accum "a1 b1 c1 center c0 b0 a0 "))
+
+($rm accum)
+($checkzero)
+
+///////////////////////////////////////////////////
+//
+//  
+($ctest "basic linking defaults to null")
+ d=F
+
+// T,F, and t_dou should have no left,right,parent attributes and return F
+($de checkd ($prop ($arg d !> t_any))
+    ($progn
+   
+      ($= e ($left d))
+      ($assert ($eq e F))
+      
+      ($= f ($right d))
+      ($assert ($eq f F))
+      
+      ($= g ($parent d))
+      ($assert ($eq g F))
+      )
+)
+    
+($checkd T)
+($checkd F)
+($checkd 6.0)
+
+
+($rm d checkd)
+($checkzero)
+
+///////////////////////////////////////////////////
+//
+//  
+//($ctest "eq testing")
+
+($assert ($eq F F))
+($assert ($eq T T))
+
+($assert ($neq F T))
+($assert ($neq T F))
+
+($assert ($not ($eq F T)))
+($assert ($not ($eq T F)))
+
+($assert ($not ($eq F T)))
+($assert ($not ($eq T F)))
+
+
+($checkzero)
+
+
+
+
+
+///////////////////////////////////////////////////
+//
+//  
+  ($ctest "symvec:")
+
+
+          ///// void symvec_pushback($l3obj* symvec, l3path* addname, l3obj* addme)
+          ///// long symvec_size($l3obj* symvec)
+          ///// void symvec_get_by_number($l3obj* symvec, long i, l3path* name, l3obj** ret)
+          ///// void symvec_get_by_name($l3obj* symvec, char* name, l3obj** ret)
+          ///// void symvec_set($l3obj* symvec, long i, l3path* addname, l3obj*  val_to_set)
+          ///// void symvec_print($l3obj* symvec, const char* indent, stopset* stoppers)
+          ///// void symvec_clear($l3obj* symvec)          
+          ///// bool symvec_search($l3obj* symvec, l3obj* needle)
+
+    /// case 310:
+//b=($make_new_symvec)
+
+//d= 77
+
+//($symvec_pushback b "seventyseven" d)
+
+//($as_far_as_were_coding)
+
+
+//($symvec_setf a "howdy" 88)
+//gdump
+//($symvec_del "howdy") // get this right.
+
+//($rm a)
+
+
+//a=($make_new_symvec)
+
+
+//($symvec_setf a "howdy" -45)
+//
+//($assert ($eq ($aref a 0) -45))
+//
+/
+//($symvec_setf a "george" 75)
+//
+//($assert ($eq ($aref a 1) 75))
+//
+//($assert ($eq ($symvec_aref a "howdy") 88))
+//
+//($assert ($eq ($symvec_aref a "george") 75))
+//
+//sv=($make_new_symvec)
+//
+//($symvec_setf sv "qui" 3)
+//
+//($symvec_setf sv "pingme" 22)
+//
+//($symvec_setf sv "pingme" 11)
+//
+//($eq ($symvec_aref sv "pingme") 11)
+//
+/
+//($rm sv a)
+//($checkzero)
+
+
+
+//////////////////////
+//
+//
+($ctest "dq method dq_front")
+
+d = ($dq 0 1 2 3 4 5 6 7 8 9)
+
+($assert ($eq 10 ($dq_len d)))
+yes = ($dq_front d)
+($assert ($eq yes 0))
+($assert ($eq 10 ($dq_len d)))
+
+no  = ($dq_popfront d)
+yes = ($dq_front d)
+($assert ($eq yes 1))
+($assert ($eq 9 ($dq_len d)))
+
+($rm d no yes)
+($checkzero)
+
+//////////////////////
+//
+//
+($ctest "dq method dq_popfront")
+
+d = ($dq 0 1 2 3 4 5 6 7 8 9)
+($assert ($eq 10 ($dq_len d)))
+
+ gh = ($dq_popfront d)
+($assert ($eq 9 ($dq_len d)))
+
+
+ gh = ($dq_popfront d)
+($assert ($eq 8 ($dq_len d)))
+
+
+($rm d gh)
+($checkzero)
+
+//////////////////////
+//
+//
+($ctest "dq method dq_del_ith")
+
+d = ($dq 0 1 2 3 4 5 6 7 8 9)
+
+// delete the evens
+($dq_del_ith d 0)
+($dq_del_ith d 1)
+($dq_del_ith d 2)
+($dq_del_ith d 3)
+($dq_del_ith d 4)
+
+
+($assert ($eq 1 ($dq_ith d 0)))
+($assert ($eq 3 ($dq_ith d 1)))
+($assert ($eq 5 ($dq_ith d 2)))
+($assert ($eq 7 ($dq_ith d 3)))
+($assert ($eq 9 ($dq_ith d 4)))
+
+($rm d)
+
+($checkzero)
+
+//////////////////////
+//
+//
+($ctest "dq_pushfront tests")
+
+d = ($dq 11 22 33)
+
+($rm d)
+d = ($dq)
+
+a = 10
+b = 43
+
+($dq_pushfront d a "ten")
+($dq_pushfront d b "forty-three")
+($dq_pushfront d a "ten")
+($dq_pushfront d b "forty-three")
+
+
+($eq ($dq_len d) 4)
+
+($assert ($eq ($dq_len d) 4))
+
+($dq_pushfront d 321)
+
+($assert ($eq ($dq_ith d 0) 321))
+
+
+($assert ($eq ($dq_len d) 5))
+
+// gets a reference. Which will be automatically deleted when d dies. Unless you copy it.
+ getit = ($dq_ith d  4)
+
+ getcp = ($cp getit)
+($assert ($eq getcp 10))
+
+// slide ownership transfer tested here, does the dstaq retain ownership of last resort? This
+// needs to work, so that command line entered data doesn't get lost.
+($assert ($eq getit 10))
+
+($rm a b)
+
+// why does the ($rm d) delete getit...??? because we just got a reference earlier.
+($rm d)
+
+($assert ($not ($aref ($exists "getit") 0))) // just a reference, so deleted along with d
+($assert ($aref ($exists "getcp") 0)) // copied and so owned, should survive d
+($assert ($eq getcp 10))
+($rm getcp)
+($checkzero)
+
+
+//////////////////////
+//
+//
+($ctest "dq method dq_back")
+
+d = ($dq 0 1 2 3 4 5 6 7 8 9)
+
+($assert ($eq 10 ($dq_len d)))
+yes = ($dq_back d)
+($assert ($eq yes 9))
+($assert ($eq 10 ($dq_len d)))
+
+no  = ($dq_popback d)
+yes = ($dq_back d)
+($assert ($eq yes 8))
+($assert ($eq 9 ($dq_len d)))
+
+($rm d no yes)
+($checkzero)
+
+//////////////////////
+//
+//
+($ctest "dq method dq_popback")
+
+d = ($dq 0 1 2 3 4 5 6 7 8 9)
+($assert ($eq 10 ($dq_len d)))
+
+ gh = ($dq_popback d)
+($assert ($eq 9 ($dq_len d)))
+
+ gh = ($dq_popback d)
+($assert ($eq 8 ($dq_len d)))
+
+
+
+($rm d gh)
+($checkzero)
+
+//////////////////////
+//
+//
+($ctest "dq method dq_del_ith")
+
+d = ($dq 0 1 2 3 4 5 6 7 8 9)
+
+// delete the evens
+($dq_del_ith d 0)
+($dq_del_ith d 1)
+($dq_del_ith d 2)
+($dq_del_ith d 3)
+($dq_del_ith d 4)
+
+
+($assert ($eq 1 ($dq_ith d 0)))
+($assert ($eq 3 ($dq_ith d 1)))
+($assert ($eq 5 ($dq_ith d 2)))
+($assert ($eq 7 ($dq_ith d 3)))
+($assert ($eq 9 ($dq_ith d 4)))
+
+($rm d)
+
+($checkzero)
+
+//////////////////////
+//
+//
+($ctest "dq is replacement for objlist_t envpath is the dq dupstaq encapsulating object")
+
+d = ($dq 11 22 33)
+
+($rm d)
+d = ($dq)
+
+a = 10
+b = 43
+
+($dq_pushback d a "ten")
+($dq_pushback d b "forty-three")
+($dq_pushback d a "ten")
+($dq_pushback d b "forty-three")
+
+
+($eq ($dq_len d) 4)
+
+($assert ($eq ($dq_len d) 4))
+
+($dq_pushback d 321)
+
+($assert ($eq ($dq_ith d 3) 43))
+
+
+($assert ($eq ($dq_len d) 5))
+
+// gets a reference. Which will be automatically deleted when d dies. Unless you copy it.
+ getit = ($dq_ith d  4)
+
+ getcp = ($cp getit)
+
+// slide ownership transfer tested here, does the dstaq retain ownership of last resort?
+($assert ($eq getit 321))
+
+($rm a b)
+
+// why does the ($rm d) delete getit...??? because we just got a reference earlier.
+($rm d)
+
+($rm getcp)
+($checkzero)
+
+
+
+///////////////////////////////////
+//
+//
+($ctest "dstaq l3obj objects, e.g. doubly-linked lists with fast membership lookup ($dstaq)")
+//
+//
+
+// strategy is now to add dstaq indexing to symvec, to give us a symvec that acts like a linked list too.
+
+//d=($dq  )         // dq is a double-ended queue, or dstaq from dstaq.h. Lookup and delete are also indexed and thus fast. 
+//                 // a dq could also be called an intelligent doubly-linked list.
+//($so "d is " d)
+
+
+//sz1=($len d)
+//sz2=($size d)
+//($assert ($eq sz1 sz2))
+//($assert ($eq sz1 0))
+
+//($pushback d 11)
+//($pushback d 22)
+//($pushback d 11)
+//($pushback d 22)
+//($pushback d 44)
+//($so "d is " d)
+//
+//($pushfront d 77)
+//
+// fr = ($front d)
+//($assert ($eq fr 11))
+//
+//ba = ($back d) 
+//
+//pb = ($popback d)
+//pf = ($popfront d)
+//
+//($assert ($eq tp pp))
+//
+//($pushfront u 33)
+//($so "u is " u)
+//
+/
+
+
+
+///////////////////////////////
+//
+($ctest "types as objects")
+//
+
+// types are just staq
+
+//exc=($staq)
+//($restrict_type exc t_exc) // an exception is a staq that only allows types of type exception.
+
+//a=($new a a)
+//($push exc a)
+//($push exc a)
+//($not ($in a ($ownlist u)))
+
+//b=2
+//($pushown b) // 
+//($in b ($ownlist u))
+
+
+//////////////////////////////////////////
+($ctest "ownlist for main_env")
+ol=($ownlist main_env)
+($assert ($> ($len ol) 0))
+($assert ($in ol ol))
+
+($rm ol)
+($checkzero)
+
+///////////////////////////////////////////////
+($ctest "that a=b reference assignment works")
+
+a=9
+($assert ($eq a 9))
+b=2
+($assert ($eq b 2))
+a=b
+($assert ($eq a 2))
+
+//////////////////////////////////////////////
+($ctest "test of softrm vs ($hard) rm")
+//
+//
+
+($softrm a)
+($assert ($aref ($exists "b") 0))
+($rm b)
+($assert ($not ($aref ($exists "b") 0)))
+($checkzero)
+
+
+//////////////////////////////////////////
+($ctest " test of ($hard) rm")
+//
+//
+
+a=9
+b=2
+a=b
+($rm a)
+($assert ($not ($aref ($exists "a") 0)))
+($assert ($not ($aref ($exists "b") 0)))
+($checkzero)
+
+
+/////////////////////////////////////////////
+($ctest "formal parameters should shadow upper static scope vars")
+//
+//
+
+ inouter=55
+($de fshadowformal ($prop ($arg inouter !> t_any)) ($progn ($so "inouter starts as " inouter) ($assert ($eq inouter 33)) ($setq inouter ($+ 1 inouter))  ($so "inouter ends as " inouter) ($assert ($eq inouter 34))  ))
+
+($fshadowformal 33)
+($assert ($eq inouter 55))
+
+($rm fshadowformal)
+($rm inouter)
+($checkzero)
+
+
+//////////////////////////////////////////////////
+($ctest "dynamic scoping of formals test")
+// and formals from nested scope e.g. one function calling another should also be shadowed
+
+
+($de top ($prop ($arg x !> t_dou) ($arg ytop !> t_dou)) 
+    ($progn 
+      ($so "    in top, precall : x is " x " and ytop is " ytop) 
+      ($assert ($eq x 1))
+      ($assert ($eq ytop 2))
+      ($mid 3 4) 
+      ($so "    in top, postcall: x is " x " and ytop is " ytop)
+      ($assert ($eq x 1))
+      ($assert ($eq ytop 2))
+))
+
+($de mid ($prop ($arg x !> t_dou) ($arg ymid !> t_dou)) 
+    ($progn 
+      ($so "    in mid, precall : x is " x " and ymid is " ymid) 
+      ($assert ($eq x 3))
+      ($assert ($eq ymid 4))
+      ($bot 5 6) 
+      ($so "    in mid, postcall: x is " x " and ymid is " ymid)
+      ($assert ($eq x 3))
+      ($assert ($eq ymid 4))
+))
+
+($de bot ($prop ($arg x !> t_dou) ($arg ybot !> t_dou)) 
+    ($progn 
+      ($assert ($eq x 5))
+      ($assert ($eq ybot 6))
+      ($so "    in bot: x is " x " and ybot is " ybot)))
+
+($top 1 2)
+
+
+
+($rm top) ($rm bot) ($rm mid)
+($checkzero)
+
+////////////////////////
+
+($ctest "local vars in containing object should shadow upper static scope vars")
+
+
+ mylocal=55
+($setq myobj ($new myobj myobj))
+ myobj.mylocal=40
+
+($de myobj.flocalshadow ($prop) 
+    ($progn 
+      ($so "mylocal starts as " mylocal) 
+      ($assert ($eq mylocal 40)) 
+      ($setq mylocal 43)
+      ($so "mylocal after setting to 43 is: " mylocal) 
+      ($assert ($eq mylocal 43)) 
+      ($setq mylocal ($+ 1 mylocal))  
+      ($so "mylocal ends after incrementing by 1 as: " mylocal) 
+      ($assert ($eq mylocal 44)) 
+      )
+    )
+
+($myobj.flocalshadow)
+($assert ($eq mylocal 55))
+
+($rm myobj)
+($rm mylocal)
+($checkzero)
+
+
+
+////////////////////////////
+///
+///  test dynamic shadowing of locals...hmmm? what would that mean?  if we have one method in an object calling into a method in a completely different object,
+///   where the object environments are different.
+($ctest "dynamic shadowing of locals") //  3
+
+
+($= o1 ($new o1 o1))
+($= o2 ($new o2 o2))
+($= o3 ($new o3 o3))
+
+o1.d=1
+o2.d=2
+o3.d=3
+
+($de o1.f1 ($prop) 
+    ($progn 
+      ($assert 
+          ($eq d 1))
+      ($so "in o1.f1, d is " d)))
+
+($de o2.f2 ($prop)
+    ($progn
+      ($assert
+          ($eq d 2))
+      ($o1.f1)
+      ($so "in o2.f2, d is " d)))
+
+($de o3.f3 ($prop)
+    ($progn
+      ($assert ($eq d 3))
+      ($so "in o3.f3, d is " d)
+      ($o1.f1)
+      ($o2.f2)
+      ($o1.f1)
+      ($assert ($eq d 3))
+))
+
+
+($o3.f3)
+($o2.f2)
+($o1.f1)
+
+($rm o1)
+($rm o2)
+($rm o3)
+($checkzero)
+
+
+////////////////
+
+// which triumps, formal param or local var in enclosing object? should be the formal
+($ctest "test formal triumph over local var") //  4
+
+($= o1 ($new o1 o1))
+
+o1.d=1
+
+// the formal parameter should over-ride...
+($de o1.f1 ($prop ($arg d !> t_dou)) ($progn ($so "in function o1.f1, d is " d) ($assert ($eq d 3))))
+
+($o1.f1 3)
+
+($rm o1)
+($checkzero)
+
+
+//////////////////////////////
+//
+//
+($ctest "test object replacement") //  5
+bubba1 = ($new Bu bu)
+bubba1 = ($new Bu2 bu2)
+bubba1 = ($new Bu3 bu3)
+($rm bubba1)
+($checkzero)
+
+//////////////////////////////
+//
+//
+($ctest "pass by reference or pass by value...") //  6
+
+
+($= o1 ($new o1 o1))
+
+
+($de o1.f1 ($prop ($arg d !> t_dou)) ($progn ($= d ($+ d 1)) ($assert ($eq d 4))))
+
+a=3
+($o1.f1 a)
+($assert ($eq a 3))
+
+o1=($new oo11 oo11)
+($rm o1)
+
+($rm a)
+($checkzero)
+
+
+////
+//
+($ctest "moves ownership from main_env into o1, but should call it d") //  7
+//
+// notice that @> means it is going into an existing object slot ($or creating a new object slot automatically, with the name d <- or at least it should. Current we are getting 'a' instead by mistake... fix this. Here is the test.
+//
+
+($= o1 ($new o1 o1))
+
+($de o1.f1 ($prop ($arg d @> t_dou)) ($progn ($= d ($+ d 1)) ($assert ($eq d 4))))
+
+($= a 3)
+
+
+($o1.f1 a)
+
+($assert ($aref ($exists "o1.d") 0))
+($assert ($eq o1.d 4))
+($in o1.d ($ownlist o1))
+
+// and we don't want a disappearing either... or do we? we did change ownership. and transfer always 
+//  discards other references. so that is consistent. we put it back for now, but ownership is transfered.
+//
+($assert ($aref ($exists "a") 0))
+
+
+($rm o1)
+($assert ($not ($aref ($exists "a") 0)))
+($checkzero)
+
+
+////////////////////////////////
+//
+//
+($ctest  "pass by reference !>") //  8
+//
+//
+// on the otherhand, by ref params... they should definitely stick around! Yes they do. And we
+//  don't seem to be modifying them, just our own new copies.
+
+($= o2 ($new o2 o2))
+
+($de o2.f2 
+    ($prop 
+        ($arg d !> t_dou))  // notice the !> by reference annotation
+    ($progn 
+      ($= d ($+ d 1)) 
+      ($assert ($eq d 4))
+      ($so "really in o2.f2, we have d=" d)
+      ))
+
+($= a 3)
+($o2.f2 a)
+
+($assert ($not ($aref ($exists "o2.d") 0)))
+($assert ($aref ($exists "a") 0))
+($assert ($eq a 3))
+
+($rm a)
+($rm o2)
+($checkzero)
+
+//////////////////////////
+//
+($ctest "pass by value with !> by default") //  9
+//
+//
+
+($= o1 ($new o1 o1))
+($de o1.f1 ($prop ($arg d !> t_dou)) ($progn ($= d ($+ d 1)) ($assert ($eq d 4)) ($so "within o1.f1 d is " d)   ))
+
+($= a 3)
+($o1.f1 a)
+($assert ($eq a 3))
+($assert ($not ($in a ($ownlist o1)))) // no ownership change.
+
+($rm o1)
+($rm a)
+($checkzero)
+
+
+// later test: ($o1.f1 o1.d ) // 
+
+//////////////////////////////////////
+// okay, but right now this is pass by value, not pass by reference, since the
+//  value in the caller is not getting updated.
+//
+// how do we distinguish... this is really an orthogonal axis to ownership. so use
+//  a different property of the type... t_pbr means pass-by-reference, t_pbv means pass-by-value.
+//
+//
+// Conclusion: it turns out it only makes sense for ($ @< @> and !< to be pass-by-reference, otherwise
+//  it doesn't really make any sense what they are doing. And they do/don't transfer ownership as well.
+//
+//  What remains is !> in-client-own variables, which can be pass-by-value ($default) or pass-by-reference
+//  if annotated with t_ref. 
+//
+////////////////////////////////
+
+////////////////////////////////////////////////////////////
+($ctest "t_ref attribute: more pass by reference testing atop !>") //  10
+
+($= o2 ($new o2 o2))
+
+($de o2.f2 
+    ($prop 
+        ($arg d !> t_dou t_ref))  // notice the !> *and* t_ref by-reference annotation. !> by itself is just pass-by-value.
+    ($progn 
+      ($= d ($+ d 1)) 
+      ($assert ($eq d 4))
+      ($so "really in o2.f2, we have d=" d)
+      ))
+
+($= a 3)
+($o2.f2 a)
+
+($assert ($not ($aref ($exists "o2.d") 0)))
+($assert ($aref ($exists "a") 0))
+($assert ($eq a 4))
+($assert ($not ($in a ($ownlist o2))))
+
+
+($rm o2)
+($rm a)
+($checkzero)
+
+
+
+
+
+
+
+// so d @> acts like an implicit obj.set_d($actual_d_val) // 
+
+
+// need: nested loops with break and  continue.
+// need: try catch with valued exceptions that point to list.
+// need: lists. e.g. put in jlmap.
+// need: i32, i64 integers with size attributes ($but just use long 8 bytes internally).
+// need: serialization to and from l3ts working.
+
+// need: libffi for calling into .so.
+// 
+// need: .so integration // llvm jit integration for generating code from inline C/C++.
+// 
+// need: lush integration ($link against a .so). Or R integration with Rlib/ and Rmath lib.
+// need: 
+
+
+// @< factory methods/ and
+// @> register and retain methods both need to work/ as do
+
+// !> reference methods ($modifiers allowed/not if const?)
+// !< reference methods
+
+
+
+
+
+//($de o2.f2  ($prop  ($arg d !> t_dou t_ref))  ($progn   ($= d ($+ d 1))   ($assert ($eq d 4)) ($so "really in o2.f2, we have d=" d)  ))
+
+
+/////////////////
+//
+($ctest "object replacement -- was failing loose ends check.") //  11
+//
+  o1=($new A a)
+  o1=($new B b)
+// then do loud/q
+  ($rm o1)
+  ($checkzero)
+
+////////////////////////////////////////////////////
+($ctest "basic progn functionality in one flat env")
+//
+//
+a=1
+($progn a = (-8))
+($assert ($aref ($exists "a") 0))
+($assert eq(a,-8))
+
+// cleanup
+($rm a)
+($checkzero)
+
+
+////////////////////////////////////////////////////
+($ctest "pass by reference then assert within progn was casusing loss of variable")
+//
+//
+($de plus12 ($prop ($return res @< t_dou) ($arg x !> t_dou)) ($progn ($setq a 10) ($setq b 2) ($+ a b x)))
+($progn ($= a2 ($new a2 a2)) ($= a a2))
+a = -5
+b = -542
+($assert eq( 62, ($plus12  50)))
+
+///
+($ctest "loosing vars after using a progn")
+a2 = a
+($progn a = -8) 
+($assert ($not ($eq a2 a))) // deletes 'a' b/c of being in progn.
+// ($progn ($= a -8)) // no problem 
+($assert ($aref ($exists "a") 0))
+
+// cleanup
+($rm plus12)
+($rm a)
+($rm b)
+($rm a2)
+($checkzero)
+
+//////////////////////////////////////////////////////////////////
+($ctest "reduced assert loss of variable testcase")
+
+(a = -53)
+($setq b  321)
+// ($progn ($assert ($not ($eq a b)))) // this alone does not cause the delete.
+($progn ($= a 321) ($assert ($eq a b))) // deletes variable 'a' b/c of the assignment followed by assert...hmmm.
+($assert ($aref ($exists "a") 0))
+($assert ($aref ($exists "b") 0))
+
+($rm a)
+($rm b)
+($checkzero)
+
+///////////////////////////////////////
+($ctest "a and b progn + assignment loss of upper variables testcase")
+//
+//
+
+(a = -53)
+(b = -1)
+
+res=($progn ($= a 44) ($= a ($+ 1 a)) ($= b ($+ 22 b)) ($so "inside progn, b=" b "  and  a=" a) b)  // deletes both a and b...even though b's value is returned...
+
+($assert ($aref ($exists "res") 0))
+($assert ($eq res 21))
+
+($assert ($aref ($exists "a") 0))
+($assert ($aref ($exists "b") 0))
+
+($rm a)
+($rm b)
+//($rm res) //  same as b, so it's already gone.
+($checkzero)
+
+
+
+//////////////////////////////////////////
+($ctest "upperputter and @< factory methods")
+//
+//
+myfx = -2
+($de upperputter 
+    ($prop 
+     ($arg sidefx @< t_any ))
+    ($progn 
+      ($so "upperputter running, with out arg sidefx getting 57.") 
+      ($= sidefx 57)
+      ))
+
+($upperputter myfx)
+($assert ($aref ($exists "myfx") 0))
+($assert ($eq 57 myfx))
+
+abc=0
+($upperputter abc)
+
+//($ mains_objects = ($ownlist main_env) )
+//($assert ($>= ($len mains_objects) 3))
+//($assert ($in abc  mains_objects))
+
+//($assert ($in mains_objects abc))
+//($rm  mains_objects)
+
+
+($rm upperputter myfx abc)
+($checkzero)
+
+
+
+//////////////////////////////////////////
+($ctest "deeper and up and down upperputter and @< factory methods")
+//
+//
+
+ nest=($new nest nest)
+ nest.n2 = ($new n2 n2)
+
+ myfx = -2
+($de nest.n2.upperputter 
+    ($prop 
+     ($arg sidefx @< t_any ))
+    ($progn 
+      ($so "upperputter running, with out arg sidefx getting plus one/ we start with: " sidefx) 
+      ($setq sidefx  ($+ sidefx 1))
+      ($so "after increment by one we have: " sidefx)  
+      ))
+
+($nest.n2.upperputter myfx)
+($assert ($aref ($exists "myfx") 0))
+($assert ($eq -1 myfx))
+
+nest.sib = ($new sib sib)
+nest.sib.gc = ($new gc gc)
+($cd nest.sib.gc)
+abc=0
+up=nest.n2.upperputter
+($up abc)
+($nest.n2.upperputter abc)
+($assert ($eq abc 2))
+
+($..)  // now this bumps up all the way we came down in one fell swoop.
+($. nest.sib)
+
+($assert ($in gc.abc ($ownlist gc)))
+
+($poptop)
+($rm nest myfx ) // abc mains_objects)
+($checkzero)
+
+
+
+//////////////////////////////////////////
+($ctest "same but !< deeper and up and down upperputter and !< non-factory methods")
+//
+//
+
+( nest=($new nest nest))
+( nest.n2 = ($new n2 n2))
+( nest.myfx = -2)
+
+($de nest.n2.upperreffer
+    ($prop 
+     ($arg sidefx !< t_any ))
+    ($progn 
+      ($so "upperreffer running, with out arg sidefx getting plus one/ we start with: " sidefx) 
+      ($setq sidefx ($+ sidefx 1))
+      ($so "after increment by one we have: " sidefx)  
+      ))
+( ownlst = ($ownlist nest))
+
+( negctrl = ($new Neg neg))
+
+($assert ($in nest.myfx ownlst ))
+($assert ($not ($in negctrl ownlst )))
+
+($transfer nest.myfx main_env)
+($assert ($not ($aref ($exists "nest.myfx") 0)) )
+
+//($assert ($not ($in nest.myfx ($ownlist nest) )))
+($assert ($member myfx ($ownlist main_env) ))
+
+
+($rm myfx nest negctrl ownlst)
+($checkzero)
+
+
+//////////////////////////////////////////
+($ctest "sibling !< test non-factory")
+
+ nest=($new nest nest)
+ nest.n2 = ($new n2 n2)
+ nest.myfx = -2
+
+($de nest.n2.upperreffer
+    ($prop 
+     ($arg sidefx !< t_any ))
+    ($progn 
+      ($so "upperreffer running, with out arg sidefx getting plus one/ we start with: " sidefx) 
+      ($setq  sidefx  ($+ sidefx 1))
+      ($so "after increment by one we have: " sidefx)  
+      ))
+
+
+nest.sib = ($new sib sib)
+nest.sib.gc = ($new gc gc)
+($cd nest.sib.gc)
+abc=0
+up=nest.n2.upperreffer
+
+($assert ($in abc ($ownlist gc))) // server owns before
+($up abc)
+($assert ($in abc ($ownlist gc))) // and server owns after.
+
+($nest.n2.upperreffer abc)
+
+
+($assert ($eq abc 2))            // client should see updates.
+($assert ($in abc ($ownlist gc))) // *but no change in ownership*
+
+
+// in contrast:
+// ($de pushout ($prop ($arg fx @< t_any)) ($setq  fx  ($+ fx 1)))
+
+// cleanup
+
+($poptop)
+($rm nest) // abc mains_objects)
+($checkzero)
+
+
+
+//////////////////////////////////////
+($ctest "main_env ownlist needs special rx")
+
+//($ mains_objects = ($ownlist main_env) )
+//($assert ($>= ($len mains_objects) 3))
+//($assert ($in abc  mains_objects))
+
+//($assert ($in mains_objects abc))
+
+
+
+
+
+//////////////////////////////////////////
+($ctest "ex version of ut 122 131 : add dtor tests")
+//
+//
+
+($= sentinel 0)  ($= o  ($new truck mytruck))
+($assert ($aref ($exists "sentinel") 0))
+($progn ($de mydtor ($prop) ($progn ($so "mydtor for truck running.") ($= sentinel ($+ 1 sentinel))))  ($dtor_add mydtor o) )
+
+($rm mydtor) // deep cp should have happened.
+o2=($cp o)
+($rm o)
+($assert  ($aref ($exists "sentinel") 0)) // // dtor running was deleting the sentinel variable!?!?
+($assert ($eq 1 sentinel))   
+($assert  ($aref ($exists "sentinel") 0)) // // dtor running was deleting the sentinel variable!?!?
+($rm o2)
+($assert  ($aref ($exists "sentinel") 0)) // // dtor running was deleting the sentinel variable!?!?
+($assert ($eq 2 sentinel))
+($assert  ($aref ($exists "sentinel") 0)) // // dtor running was deleting the sentinel variable!?!?
+
+($so "yep, sentinel should be 2, and is: " sentinel)
+($rm sentinel)
+($checkzero)
+
+
+
+//////////////////////////
+//
+($ctest "multi delete with rm")
+//
+goner1=($new G g1)
+goner2=($new G g2)
+goner3=($new G g3)
+
+goner1.goner4 = ($new Gnested g4nested)
+($rm goner1 goner2 goner3)
+($checkzero)
+
+
+////////////////////////////
+//
+($ctest "check 'exists' for mem leaks")
+($exists "nonexistant")
+($checkzero)
+
+
+
+/////////////////////////// raw stuff from ut, needs editing:
+
+///////////////////////////////////////////////////
+//
+//  
+($ctest "referencing variables in the same object")
+
+($= y1 ($new Ballon balloo))
+y1.ff=55
+($de y1.decr ($prop) ($progn ($so "*** --->  decr running! <--- ***") ($= ff ($- ff 1)) ($so "ff is now, after decrement: " ff)))
+
+($y1.decr)
+($assert ($eq y1.ff 54))
+
+($rm y1)
+($checkzero)
+
+
+
+//////////////////////////////////////////
+//
+//
+($ctest "accessing/modifying/references to sibling objects, within dtor")
+
+($= sent 0)
+($= t1 ($new truck mytr1_t1))
+t1.ff=55
+($de truckdtor ($prop) 
+    ($progn 
+        ($so "*** --->  truckdtor! <--- ***") 
+        ($assert ($eq ff 55))  
+        ($= sent ($+ sent 1)) 
+        ($so "sent is " sent)
+        ($= ff ($- ff 1))
+        ($so "ff is " ff)
+        ($assert ($eq t1.ff 54))))
+
+($dtor_add truckdtor t1)
+($rm t1)
+($assert ($eq sent 1))
+($rm sent)
+($rm truckdtor)
+($checkzero)
+
+
+
+//  parse is now replaced with tdop, adapting some old parse/parse_eval tests to tdop here:
+
+///////////////////////////////////////////////////
+//
+($ctest "simple tdop test, with printout tests.")
+
+// basic parsing from string into s-expression object:
+
+($= str "($+ 1 2 3)")
+
+($= sexp ($tdop str))
+($so "sexp is " sexp)  // test output 
+
+($= str2 ($p sexp)) // test print to string
+($assert ($> ($strlen str) 0))
+($assert ($eq ($strlen str) 10))
+
+($assert ($aref ($exists "sexp") 0))
+($assert ($aref ($exists "str") 0))
+($assert ($aref ($exists "str2") 0))
+
+// what we expect:
+($assert ($eq str2  "('($' _hd:('+')('1')('2')('3'))" ))
+
+($rm sexp str str2)
+($checkzero)
+
+
+
+
+///////////////////////////////////////////////////
+//
+//  
+($ctest "cp - deep copy of objects")
+
+
+($= sent 0)
+($= t1 ($new truck mytr1_t1))
+t1.ff=55
+($de truckdtor ($prop) ($progn ($so "*** --->  truckdtor! <--- ***") ($= sent ($+ sent 1)) ($= ff ($- ff 1))))
+($de t1.doit ($prop) ($so "*** --->  doit running!!!!! <--- ***"))
+
+($dtor_add truckdtor t1)
+
+($= t2 ($cp t1))
+($rm t1)
+
+($assert  ($aref ($exists "t2.ff") 0))
+($assert  ($eq  t2.ff 55))
+
+($assert  ($aref ($exists "t2.doit") 0))
+($t2.doit)
+
+($rm t2)
+
+($rm sent truckdtor)
+($checkzero)
+
+
+/// wierdly running it 2x doesn't work the same... no fixed. issue was that object dtors
+/// not being called before the tag cleanup was starte, so objects we expected to be
+///  present were already gone.
+($ctest "2nd time, cp - deep copy of objects")
+
+
+($= sent 0)
+($= t1 ($new truck mytr1_t1))
+t1.ff=55
+($de truckdtor ($prop) ($progn ($so "*** --->  truckdtor! <--- ***") ($= sent ($+ sent 1)) ($= ff ($- ff 1))))
+($de t1.doit ($prop) ($so "*** --->  doit running!!!!! <--- ***"))
+
+($dtor_add truckdtor t1)
+
+($= t2 ($cp t1))
+($rm t1)
+
+($assert  ($aref ($exists "t2.ff") 0))
+($assert  ($eq  t2.ff 55))
+
+($assert  ($aref ($exists "t2.doit") 0))
+($t2.doit)
+
+($rm t2)
+
+($rm sent truckdtor)
+($checkzero)
+
+//// third time for good measure.
+($ctest "3rd time, cp - deep copy of objects")
+
+
+($= sent 0)
+($= t1 ($new truck mytr1_t1))
+t1.ff=55
+($de truckdtor ($prop) ($progn ($so "*** --->  truckdtor! <--- ***") ($= sent ($+ sent 1)) ($= ff ($- ff 1))))
+($de t1.doit ($prop) ($so "*** --->  doit running!!!!! <--- ***"))
+
+($dtor_add truckdtor t1)
+
+($= t2 ($cp t1))
+($rm t1)
+
+($assert  ($aref ($exists "t2.ff") 0))
+($assert  ($eq  t2.ff 55))
+
+($assert  ($aref ($exists "t2.doit") 0))
+($t2.doit)
+
+($rm t2)
+
+($rm sent truckdtor)
+($checkzero)
+
+
+
+
+////////////////////////////////////////////////////
+//
+//
+($ctest "calling other functions within member functions -- tests scoping")
+
+($= r1 ($new truck mytr1_r1))
+
+($de r1.truckdtor ($prop) 
+    ($progn 
+      ($so "*** --->  truckdtor! <--- ***") 
+      ($doit)))
+
+($de r1.doit ($prop) 
+    ($so "*** --->  doit running!!!!! <--- ***"))
+
+($dtor_add r1.truckdtor r1)
+
+($rm r1)
+($checkzero)
+
+
+///////////////////////////////////////////////////
+//
+//  
+($ctest "preparation for @> method testing: programatic checking of ownership")
+//
+//
+
+chest = ($new pirate_chest  chest_wants_booty)
+booty = ($new  booty  mybooty_to_transfer_in)
+
+// confirm where it is pre transfer
+($assert ($in booty ($ownlist main_env)))
+($assert ($not ($in booty ($ownlist chest))))
+
+($transfer booty chest)
+
+// removed our old reference, gotta make another...
+ bo=chest.booty
+
+// confirm where booty should be post-transfer
+($assert ($in bo ($ownlist chest)))
+
+
+($rm bo chest)
+($checkzero)
+
+
+///////////////////////////////////////////////////
+//
+//  
+($ctest "@> methods to effect transfer ")
+
+($= ca ($new Castle castle))
+ a=3
+
+($de ca.stock ($prop ($arg d @> t_dou)) 
+    ($progn 
+      ($assert ($eq d 3))
+      ($= d ($+ d 1)) 
+      ($so "inside stock, d = " d)
+      ($so "inside stock, a = " a)
+      ($assert ($eq d 4))
+      ($assert ($eq a 4))  // this is actually correct, since we take ownership of the object referenced by a, and change it.
+      ))
+
+($ca.stock a)
+
+($assert ($eq a 4))
+
+($assert ($aref ($exists "ca.d") 0))
+($assert ($eq ca.d 4))
+($assert ($in ca.d ($ownlist ca)))
+
+($rm a ca)
+($checkzero)
+
+
+
+
+/////////////////////////////
+//
+//
+($ctest "($in a b) returns T if object a is in the ptrvec b")
+//
+
+
+($= o ($new oo ooo))
+($assert ($eq 0 ($len ($ownlist o))))
+
+($ownlist o)
+
+
+($progn ($= a ($v)) ($assert ($ not ($in a 3))))
+($progn ($= a ($v)) ($in a 3) ($assert ($eq 0 ($len a))))
+($assert ($not ($in 2 nan)))
+
+($rm o a)
+($checkzero)
+
+
+
+///////////////////////////////////////////////////////
+//
+//
+($ctest "transfer")
+//
+//
+        
+      /// circa case 173:
+
+($= o ($new oo ooo))
+ truck = ($new truck mytruck)
+
+($assert ($not ($owns o truck)))
+
+($transfer o truck)
+
+($so "This shold be true--> " ($owns truck.o truck))
+($assert ($owns truck.o truck))
+
+($rm truck)
+($checkzero)
+
+///////////////////////////////////////////////////////
+//
+//
+($ctest "deeply nested ownership testing")
+
+ a=($new A a)
+ a.b=($new B b)
+ a.b.d=($new D d)
+ a.b.d.e=($new E e)
+
+($assert ($owns a.b.d.e a))
+
+($assert ($not ($owns a  a.b.d.e)))
+
+
+($rm a)
+($checkzero)
+
+
+///////////////////////////////////////////////////////
+//
+//
+($ctest "exists and lookup don't crash and don't leak")
+
+
+ o = ($new o o)
+
+  ($if ($exists "o") ($so "yes to o!") ($so "no to o!"))
+
+  ($if ($lookup "o") ($so "yes to o!") ($so "no to o!"))
+
+  ($assert ($exists "o"))
+  ($assert ($lookup "o"))
+
+
+($rm o)
+($checkzero)
+
