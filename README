@@ -121,5 +121,8 @@ qtree* qtreefactory::expression(int rbp) {
 ///////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////
 
+For reference, giving the theory, I attach a pdf of the Pratt original. (file: Vaughan.Pratt.TDOP.pdf)
 
-- Jason E. Aten <j.e.aten@gmail.com>
+- Jason
+
+Jason E. Aten <j.e.aten@gmail.com>
