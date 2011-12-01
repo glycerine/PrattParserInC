@@ -3,7 +3,7 @@ README for PrattParserInC
 These files illustrate an elegant parsing method, implemented in C/C++, first
 described by Vaughn Pratt in his 1973 paper, "Top Down Operator Precedence."
 
-Pratt's description was in Lisp, and so hard for most people to interpret. Douglas
+Pratt's description was in state machines and lisp, and so somewhat hard to interpret. Douglas
 Crockford's description in Javascript (see Beautiful Code, and 
 http://javascript.crockford.com/tdop/tdop.html) were instrumental in bringing 
 this method to my attention. 
