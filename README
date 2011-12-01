@@ -3,3 +3,8 @@ README for PrattParserInC
 These files illustrate an elegant parsing method, implemented in C, first
 described by Vaughn Pratt in his 1973 paper, "Top Down Operator Precedence."
 
+They are part of a larger project, and so may not compile standalone at the moment.
+These files are here to illustrate the technique, and give examples of
+my code.
+
+- Jason E. Aten <j.e.aten@gmail.com>
