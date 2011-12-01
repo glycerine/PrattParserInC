@@ -1,0 +1,5 @@
+README for PrattParserInC
+
+These files illustrate an elegant parsing method, implemented in C, first
+described by Vaughn Pratt in his 1973 paper, "Top Down Operator Precedence."
+
