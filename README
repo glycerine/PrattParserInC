@@ -12,4 +12,7 @@ They are part of a larger project, and so may not compile standalone at the mome
 These files are here to illustrate the technique, and give examples of
 my code.
 
+The file 'newpassing.l3' gives many examples of the code that is parsed with
+this method.
+
 - Jason E. Aten <j.e.aten@gmail.com>
