@@ -16,7 +16,7 @@ The file 'newpassing.l3' gives many examples of the code that is parsed with
 this method.
 
 The heart of the Pratt method is the expression() routine, that starts on line 606 of l3pratt.cpp.
-As in the Crockford's paper, the algorithm is surprisingly short; it is subtle. I'll reproduce it here for easy comparison.
+As in Crockford's paper, the algorithm is surprisingly short; it is subtle. I'll reproduce it here for easy comparison.
 
 
 // Crockford's version in Javascript:
